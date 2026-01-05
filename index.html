@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Track Compass toolikt</title>
+
+  <!-- Plotly -->
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+
+  <!-- WaveSurfer -->
+  <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+  <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
+
+  <style>
+    /* (styles unchanged — same as your uploaded file) */
+    :root{
+      --bg: #07070c;
+      --stroke: rgba(255,255,255,0.10);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.70);
+      --muted2: rgba(255,255,255,0.55);
+      --shadow: 0 18px 60px rgba(0,0,0,0.55);
+
+      --neonA: #00f0ff;
+      --neonB: #ff2bd6;
+      --neonC: #7cff6b;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% 10%, rgba(0,240,255,0.10), transparent 55%),
+        radial-gradient(900px 500px at 90% 20%, rgba(255,43,214,0.10), transparent 60%),
+        radial-gradient(900px 700px at 50% 100%, rgba(124,255,107,0.07), transparent 60%),
+        var(--bg);
+    }
+
+    .container { max-width: 1040px; margin: 0 auto; padding: 22px 14px 60px; }
+
+    header {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding: 16px 16px;
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    h1 { margin: 0; font-size: 20px; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.35; }
+
+    .songList {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .songChip {
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.22);
+      color: rgba(255,255,255,0.90);
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .songChip:hover { transform: translateY(-1px); background: rgba(255,255,255,0.05); }
+    .songChip.active {
+      background: rgba(255,255,255,0.10);
+      border-color: rgba(255,255,255,0.24);
+      box-shadow: 0 0 20px rgba(0,240,255,0.16);
+    }
+
+    .song {
+      border: 1px solid var(--stroke);
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      overflow: hidden;
+      margin-top: 14px;
+    }
+
+    .songTop {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .titleLine { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; }
+    .title { font-size: 18px; font-weight: 760; }
+    .artist { font-size: 13px; color: var(--muted); }
+    .invite { margin-top: 8px; font-size: 13px; color: var(--muted2); line-height: 1.35; }
+
+    .stack { display: grid; gap: 14px; padding: 14px 16px 16px; }
+
+    .panel {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      background: rgba(0,0,0,0.18);
+      padding: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before{
+      content:"";
+      position:absolute;
+      inset:-40px;
+      background:
+        radial-gradient(240px 180px at 20% 30%, rgba(0,240,255,0.10), transparent 60%),
+        radial-gradient(260px 190px at 75% 20%, rgba(255,43,214,0.10), transparent 60%),
+        radial-gradient(250px 200px at 60% 85%, rgba(124,255,107,0.08), transparent 60%);
+      filter: blur(10px);
+      pointer-events:none;
+    }
+    .panel > * { position: relative; z-index: 1; }
+
+    .chartTabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .chartTab {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.25);
+      color: rgba(255,255,255,0.88);
+      font-size: 13px;
+      font-weight: 650;
+      cursor: pointer;
+      transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+    .chartTab:hover { transform: translateY(-1px); background: rgba(255,255,255,0.06); }
+    .chartTab.active {
+      background: rgba(255,255,255,0.10);
+      color: rgba(255,255,255,0.96);
+      border-color: rgba(255,255,255,0.22);
+      box-shadow: 0 0 18px rgba(0,240,255,0.18);
+    }
+
+    .radarRow{
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .legendCard{
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
+      background: rgba(0,0,0,0.20);
+      overflow: hidden;
+    }
+
+    .legendTitle{
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 760;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .legendItems{
+      padding: 10px 10px 6px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .legendItem{
+      padding: 9px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.16);
+      cursor: default;
+      user-select: none;
+      transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .legendItem:hover{
+      transform: translateY(-1px);
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.16);
+    }
+
+    .legendLabel{
+      font-size: 12px;
+      font-weight: 760;
+      color: rgba(255,255,255,0.92);
+      white-space: nowrap;
+    }
+
+    .legendDesc{
+      margin-top: 6px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.72);
+      line-height: 1.35;
+    }
+
+    .legendFooter{
+      padding: 10px 12px 12px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.70);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .legendDot{
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      display: inline-block;
+    }
+
+    #chart { width: 100%; height: 360px; min-height: 360px; }
+
+    .waveTopRow {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.25);
+      color: rgba(255,255,255,0.92);
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .btn:hover { background: rgba(255,255,255,0.06); }
+    .btn.small { padding: 9px 10px; font-size: 13px; }
+
+    .time {
+      color: rgba(255,255,255,0.78);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .timelineWrap { display: grid; gap: 8px; margin-bottom: 10px; }
+    .timeline {
+      width: 100%;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.18);
+      overflow: hidden;
+      display: flex;
+      cursor: pointer;
+    }
+
+    .seg {
+      height: 100%;
+      position: relative;
+      transition: filter 0.12s ease, opacity 0.12s ease;
+      opacity: 0.92;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.92);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.85);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      user-select: none;
+    }
+    .seg span { pointer-events: none; }
+    .seg:hover { filter: brightness(1.12); }
+    .seg.active { opacity: 1; filter: brightness(1.25); }
+
+    .seg::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 1px;
+      height: 100%;
+      background: rgba(255,255,255,0.10);
+    }
+
+    #waveform { width: 100%; height: 160px; min-height: 160px; }
+
+    .phraseLabel {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.20);
+      color: rgba(255,255,255,0.88);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    @media (max-width: 760px) {
+      .radarRow { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>The Track Compass toolikt</h1>
+      <p class="subtitle">
+        The Track Compass Toolkit is an interactive song map for DJs and dancers. It lets you see a track broken into phrases, and see what each section invites on the dancefloor. 
+
+        Click phrase blocks on the timeline or waveform to jump through the song while the radar updates to reflect that moment’s characteristics. Use it to choose tracks more sensitively, understand transitions, and shape sets around what the dancefloor is ready to feel next.
+      </p>
+      <div class="songList" id="songList"></div>
+    </header>
+
+    <div class="song">
+      <div class="songTop">
+        <div class="titleLine">
+          <div class="title" id="songTitle"></div>
+          <div class="artist" id="songArtist"></div>
+        </div>
+        <div class="invite" id="songInvite"></div>
+      </div>
+
+      <div class="stack">
+        <div class="panel">
+          <div class="chartTabs" id="radarTabs">
+            <button class="chartTab active" data-mode="movement" type="button">Movement</button>
+            <button class="chartTab" data-mode="texture" type="button">Texture / Emotion</button>
+            <button class="chartTab" data-mode="dj" type="button">DJ Utility</button>
+          </div>
+
+          <div class="radarRow">
+            <div class="legendCard">
+              <div class="legendTitle" id="legendTitle">Legend</div>
+              <div class="legendItems" id="legendItems"></div>
+              <div class="legendFooter">
+                <span class="legendDot"></span>
+                Bigger shape = stronger invitation
+              </div>
+            </div>
+
+            <div id="chart"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="waveTopRow">
+            <div class="controls">
+              <button class="btn" id="playPause">Play</button>
+              <button class="btn" id="stopBtn">Stop</button>
+              <button class="btn small" id="seekBack5">← 5s</button>
+              <button class="btn small" id="seekFwd5">5s →</button>
+              <button class="btn" id="shareBtn">Share</button>
+            </div>
+            <div class="time" id="timeReadout">0:00 / 0:00</div>
+          </div>
+
+          <div class="timelineWrap">
+            <div class="timeline" id="phraseTimeline"></div>
+          </div>
+
+          <div id="waveform"></div>
+
+          <div class="phraseLabel" id="phraseLabel">Phrase: —</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/*****************************************************************
+ * DEMO DATA — replace with yours
+ *****************************************************************/
+const SONGS = [
+  {
+    id: "track1",
+    title: "ALMA — Perfect",
+    artist: "Local file demo",
+    invite: "Invites: a controlled build, then open-body release.",
+    audioUrl: "audio/ALMA - Perfect.mp3",  // ✅ FIXED PATH (set yours)
+    phrases: [
+      {
+        id:"intro", name:"Intro", start:0, end:20, color:"rgba(0,240,255,0.20)",
+        label:"Intro — inhale, set the tone.",
+        radar:{
+          movement:{ labels:["Groove","Bounce","Flow","Tension"], values:[3,2,6,3]},
+          texture:{ labels:["Warmth","Darkness","Euphoria","Immersion"], values:[3,6,2,7]},
+          dj:{ labels:["Mix-in","Mix-out","Peak-time","Unique"], values:[8,6,2,6]}
+        }
+      },
+      {
+        id:"build", name:"Build", start:20, end:55, color:"rgba(255,43,214,0.18)",
+        label:"Build — tension climbs, steps sharpen.",
+        radar:{
+          movement:{ labels:["Groove","Bounce","Flow","Tension"], values:[6,4,7,8]},
+          texture:{ labels:["Warmth","Darkness","Euphoria","Immersion"], values:[4,7,3,8]},
+          dj:{ labels:["Mix-in","Mix-out","Peak-time","Unique"], values:[6,7,5,7]}
+        }
+      },
+      {
+        id:"drop", name:"Drop", start:55, end:95, color:"rgba(124,255,107,0.16)",
+        label:"Drop — release, bigger motion.",
+        radar:{
+          movement:{ labels:["Groove","Bounce","Flow","Tension"], values:[9,7,8,6]},
+          texture:{ labels:["Warmth","Darkness","Euphoria","Immersion"], values:[5,6,7,7]},
+          dj:{ labels:["Mix-in","Mix-out","Peak-time","Unique"], values:[5,6,9,7]}
+        }
+      }
+    ]
+  }
+];
+
+/*****************************************************************
+ * LEGEND CONFIG — easy to change per tab
+ *****************************************************************/
+const LEGEND_CONFIG = {
+  movement: {
+    title: "Movement legend",
+    axes: {
+      "Groove": "Invites steady hips / pulse and lock-in.",
+      "Bounce": "Invites springy steps and playful rebound.",
+      "Flow": "Invites smooth continuous motion and glide.",
+      "Tension": "Invites holding back, edging, anticipation."
+    }
+  },
+  texture: {
+    title: "Texture / Emotion legend",
+    axes: {
+      "Warmth": "Invites soft open body language.",
+      "Darkness": "Invites grounded, shadowy movement.",
+      "Euphoria": "Invites uplift, open chest, release.",
+      "Immersion": "Invites inward focus; losing yourself in the loop."
+    }
+  },
+  dj: {
+    title: "DJ Utility legend",
+    axes: {
+      "Mix-in": "Easy to enter without breaking the floor.",
+      "Mix-out": "Easy to exit cleanly.",
+      "Peak-time": "Works when the room needs a push.",
+      "Unique": "Stands out, memorable signature."
+    }
+  }
+};
+
+/*****************************************************************
+ * URL STATE (#song=...&t=...)
+ *****************************************************************/
+function parseHashState() {
+  const raw = (location.hash || "").replace(/^#/, "");
+  const params = new URLSearchParams(raw);
+  return {
+    song: params.get("song") || SONGS[0].id,
+    t: Math.max(0, parseFloat(params.get("t") || "0") || 0)
+  };
+}
+function writeHashState(songId, t) {
+  const params = new URLSearchParams();
+  params.set("song", songId);
+  params.set("t", (Math.max(0, t || 0)).toFixed(2));
+  history.replaceState(null, "", "#" + params.toString());
+}
+function makeShareUrl(songId, t) {
+  const params = new URLSearchParams();
+  params.set("song", songId);
+  params.set("t", (Math.max(0, t || 0)).toFixed(2));
+  return location.origin + location.pathname + "#" + params.toString();
+}
+
+/*****************************************************************
+ * UI refs
+ *****************************************************************/
+const songListEl = document.getElementById("songList");
+const titleEl = document.getElementById("songTitle");
+const artistEl = document.getElementById("songArtist");
+const inviteEl = document.getElementById("songInvite");
+
+const playPauseBtn = document.getElementById("playPause");
+const stopBtn = document.getElementById("stopBtn");
+const timeEl = document.getElementById("timeReadout");
+const shareBtn = document.getElementById("shareBtn");
+const seekBack5Btn = document.getElementById("seekBack5");
+const seekFwd5Btn = document.getElementById("seekFwd5");
+
+const phraseLabelEl = document.getElementById("phraseLabel");
+const phraseTimelineEl = document.getElementById("phraseTimeline");
+
+const legendTitleEl = document.getElementById("legendTitle");
+const legendItemsEl = document.getElementById("legendItems");
+
+/*****************************************************************
+ * State
+ *****************************************************************/
+let activeSong = null;
+let activeMode = "movement";
+let activePhraseIndex = 0;
+let isLoadingSong = false; // ✅ FIX: was used but not declared
+
+const neon = {
+  movement: getComputedStyle(document.documentElement).getPropertyValue('--neonA').trim(),
+  texture:  getComputedStyle(document.documentElement).getPropertyValue('--neonB').trim(),
+  dj:       getComputedStyle(document.documentElement).getPropertyValue('--neonC').trim()
+};
+
+const forcedHover = {
+  bgcolor: "rgba(10,10,18,0.98)",
+  bordercolor: "rgba(255,255,255,0.22)",
+  font: { color: "rgba(255,255,255,0.95)", size: 12 }
+};
+
+const radarLayout = {
+  margin: { t: 18, r: 18, b: 18, l: 18 },
+  showlegend: false,
+  hovermode: "closest",
+  paper_bgcolor: "rgba(0,0,0,0)",
+  plot_bgcolor: "rgba(0,0,0,0)",
+  font: { color: "rgba(255,255,255,0.90)", size: 12 },
+  hoverlabel: forcedHover,
+  polar: {
+    bgcolor: "rgba(0,0,0,0)",
+    radialaxis: {
+      visible: true,
+      range: [0, 10],
+      tick0: 0,
+      dtick: 2,
+      tickfont: { size: 10, color: "rgba(255,255,255,0.70)" },
+      gridcolor: "rgba(255,255,255,0.10)",
+      linecolor: "rgba(255,255,255,0.14)"
+    },
+    angularaxis: {
+      tickfont: { size: 11, color: "rgba(255,255,255,0.78)" },
+      rotation: 90,
+      direction: "clockwise",
+      gridcolor: "rgba(255,255,255,0.08)",
+      linecolor: "rgba(255,255,255,0.10)"
+    }
+  }
+};
+
+/*****************************************************************
+ * Radar axis order (must match labels)
+ *****************************************************************/
+const RADAR_AXES = {
+  movement: ["Groove","Bounce","Flow","Tension"],
+  texture:  ["Warmth","Darkness","Euphoria","Immersion"],
+  dj:       ["Mix-in","Mix-out","Peak-time","Unique"]
+};
+
+function closeLoop(arr){ return [...arr, arr[0]]; }
+function hexToRgba(hex, alpha) {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+function valuesInFixedOrder(mode, phraseRadar) {
+  const axes = RADAR_AXES[mode];
+  const valuesByLabel = Object.fromEntries(phraseRadar.labels.map((lab, i) => [lab, phraseRadar.values[i]]));
+  return axes.map(lab => valuesByLabel[lab] ?? 0);
+}
+
+function setRadarInstant(mode, phraseIndex) {
+  if (!radarInitialized) return;
+
+  const p = activeSong.phrases[phraseIndex];
+  const values = valuesInFixedOrder(mode, p.radar[mode]);
+  const trace = radarTraceFromValues(mode, values);
+
+  // Update the main radar trace (trace 0) without full redraw
+  Plotly.restyle("chart", {
+    r: [trace.r],
+    theta: [trace.theta],
+    "line.color": [trace.line.color],
+    "marker.color": [trace.marker.color],
+    "fillcolor": [trace.fillcolor]
+  }, [0]);
+
+  // Also update highlight trace color so it matches the mode (but keep it hidden)
+  if (highlightTraceReady) {
+    Plotly.restyle("chart", { "line.color": [neon[mode]] }, [1]);
+    clearAxisLineHighlight();
+  }
+}
+function radarTraceFromValues(mode, values) {
+  return {
+    type: "scatterpolar",
+    mode: "lines+markers",
+    fill: "toself",
+    r: closeLoop(values),
+    theta: closeLoop(RADAR_AXES[mode]),
+    line: { width: 3, color: neon[mode] },
+    marker: { size: 7, color: neon[mode] },
+    fillcolor: hexToRgba(neon[mode], 0.20),
+    hoverlabel: forcedHover,
+    hovertemplate: "%{theta}<br>%{r}/10<extra></extra>"
+  };
+}
+
+/*****************************************************************
+ * Plotly setup with highlight axis trace (THIS is axis highlight)
+ *****************************************************************/
+let radarInitialized = false;
+let highlightTraceReady = false;
+
+function ensureHighlightTrace() {
+  if (highlightTraceReady) return;
+  Plotly.addTraces("chart", [{
+    type: "scatterpolar",
+    mode: "lines",
+    r: [0, 0],
+    theta: [RADAR_AXES[activeMode][0], RADAR_AXES[activeMode][0]],
+    line: { width: 6, color: neon[activeMode] },
+    hoverinfo: "skip",
+    showlegend: false
+  }]);
+  highlightTraceReady = true;
+}
+
+function clearAxisLineHighlight() {
+  if (!highlightTraceReady) return;
+  Plotly.restyle("chart", {
+    r: [[0, 0]],
+    theta: [[RADAR_AXES[activeMode][0], RADAR_AXES[activeMode][0]]]
+  }, [1]);
+}
+
+function initRadar() {
+  const p = activeSong.phrases[0];
+  const values = valuesInFixedOrder(activeMode, p.radar[activeMode]);
+  const trace = radarTraceFromValues(activeMode, values);
+
+  return Plotly.newPlot("chart", [trace], radarLayout, {
+    displayModeBar: false,
+    responsive: true
+  }).then(() => {
+    radarInitialized = true;
+    highlightTraceReady = false;
+    ensureHighlightTrace();
+    renderLegendForMode(activeMode);
+  });
+}
+
+function updateRadarNow(mode, phraseIndex) {
+  if (!radarInitialized || !activeSong) return;
+
+  const p = activeSong.phrases[phraseIndex];
+  const values = valuesInFixedOrder(mode, p.radar[mode]);
+  const trace = radarTraceFromValues(mode, values);
+
+  // Update main radar trace (trace 0) instantly
+  Plotly.restyle("chart", {
+    r: [trace.r],
+    theta: [trace.theta],
+    "line.color": [trace.line.color],
+    "marker.color": [trace.marker.color],
+    fillcolor: [trace.fillcolor]
+  }, [0]);
+
+  // Keep highlight trace color in sync (trace 1)
+  if (highlightTraceReady) {
+    Plotly.restyle("chart", { "line.color": [neon[mode]] }, [1]);
+    clearAxisLineHighlight();
+  }
+}
+
+/*****************************************************************
+ * Legend render: Axis name + description; hover highlights axis line only
+ *****************************************************************/
+function renderLegendForMode(mode) {
+  if (!activeSong || !activeSong.phrases || !activeSong.phrases.length) return;
+
+  const cfg = LEGEND_CONFIG[mode] || { title: "Legend", axes: {} };
+  legendTitleEl.textContent = cfg.title || "Legend";
+  legendItemsEl.innerHTML = "";
+
+  const p = activeSong.phrases[activePhraseIndex];
+  const values = valuesInFixedOrder(mode, p.radar[mode]);
+
+  RADAR_AXES[mode].forEach((lab, axisIndex) => {
+    const item = document.createElement("div");
+    item.className = "legendItem";
+item.innerHTML = `
+  <div class="legendLabel">${lab}</div>
+  <div class="legendDesc">${(cfg.axes && cfg.axes[lab]) ? cfg.axes[lab] : "—"}</div>
+`;
+
+    item.addEventListener("mouseenter", () => {
+      ensureHighlightTrace();
+      Plotly.restyle("chart", {
+        r: [[0, values[axisIndex] ?? 10]],
+        theta: [[lab, lab]],
+        "line.color": [neon[mode]],
+        "line.width": [6]
+      }, [1]);
+    });
+
+    item.addEventListener("mouseleave", () => {
+      clearAxisLineHighlight();
+    });
+
+    legendItemsEl.appendChild(item);
+  });
+}
+
+/*****************************************************************
+ * WaveSurfer + Regions
+ *****************************************************************/
+const RegionsPlugin = WaveSurfer.Regions.create();
+const ws = WaveSurfer.create({
+  container: "#waveform",
+  url: "",
+  height: 160,
+  waveColor: "rgba(255,255,255,0.18)",
+  progressColor: "rgba(0,240,255,0.70)",
+  cursorColor: "rgba(255,255,255,0.65)",
+  barWidth: 2,
+  barGap: 1,
+  barRadius: 2,
+  normalize: true,
+  plugins: [RegionsPlugin],
+});
+
+function clearRegions() {
+  Object.values(RegionsPlugin.getRegions()).forEach(r => r.remove());
+}
+
+function boostAlpha(rgbaStr, extra) {
+  const m = rgbaStr.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([0-9.]+)\)/i);
+  if (!m) return rgbaStr;
+  const a = Math.min(1, parseFloat(m[4]) + extra);
+  return `rgba(${m[1]},${m[2]},${m[3]},${a})`;
+}
+
+function highlightActiveRegion(phraseId) {
+  const regions = RegionsPlugin.getRegions();
+  Object.values(regions).forEach(r => {
+    const p = activeSong.phrases.find(ph => ph.id === r.id);
+    if (!p) return;
+    r.setOptions({ color: (r.id === phraseId) ? boostAlpha(p.color, 0.12) : p.color });
+  });
+}
+
+function createPhraseRegions() {
+  clearRegions();
+  activeSong.phrases.forEach(p => {
+    const region = RegionsPlugin.addRegion({
+      id: p.id,
+      start: p.start,
+      end: p.end,
+      color: p.color,
+      drag: false,
+      resize: false
+    });
+
+    region.element.addEventListener("click", (e) => {
+      e.stopPropagation();
+      seekTo(p.start + 0.01, true);
+    });
+  });
+}
+
+/*****************************************************************
+ * Phrase timeline
+ *****************************************************************/
+function renderPhraseTimeline() {
+  phraseTimelineEl.innerHTML = "";
+  const dur = ws.getDuration() || 0;
+  if (!dur) return;
+
+  activeSong.phrases.forEach((p, idx) => {
+    const w = Math.max(0.5, ((p.end - p.start) / dur) * 100);
+    const seg = document.createElement("div");
+    seg.className = "seg";
+    seg.dataset.idx = String(idx);
+    seg.style.width = w + "%";
+    seg.style.background = p.color;
+    seg.title = p.label;
+
+    const span = document.createElement("span");
+    span.textContent = p.name || p.id;
+    seg.appendChild(span);
+
+    seg.addEventListener("click", (e) => {
+      e.stopPropagation();
+      seekTo(p.start + 0.01, true);
+    });
+
+    phraseTimelineEl.appendChild(seg);
+  });
+
+  updateTimelineActive();
+}
+
+function updateTimelineActive() {
+  const segs = phraseTimelineEl.querySelectorAll(".seg");
+  segs.forEach(s => s.classList.toggle("active", Number(s.dataset.idx) === activePhraseIndex));
+}
+
+/*****************************************************************
+ * Phrase switching
+ *****************************************************************/
+function setActivePhraseIndexByTime(t) {
+  if (!activeSong || !activeSong.phrases || !activeSong.phrases.length) return;
+  const phrases = activeSong.phrases;
+  let idx = phrases.findIndex(ph => t >= ph.start && t < ph.end);
+  if (idx === -1) idx = phrases.length - 1;
+
+  if (idx !== activePhraseIndex) {
+    activePhraseIndex = idx;
+    const p = phrases[idx];
+
+    phraseLabelEl.textContent = `Phrase: ${p.label}`;
+    highlightActiveRegion(p.id);
+    updateTimelineActive();
+
+updateRadarNow(activeMode, activePhraseIndex);
+renderLegendForMode(activeMode);
+  }
+}
+
+/*****************************************************************
+ * Controls + keyboard
+ *****************************************************************/
+function fmtTime(sec) {
+  sec = Math.max(0, sec || 0);
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${String(s).padStart(2,"0")}`;
+}
+
+function seekTo(targetSec, playAfter = false) {
+  const dur = ws.getDuration() || 0;
+  const next = Math.min(Math.max(0, targetSec), dur || Infinity);
+  ws.setTime(next);
+  if (playAfter) ws.play();
+  setActivePhraseIndexByTime(next);
+  timeEl.textContent = `${fmtTime(next)} / ${fmtTime(dur)}`;
+  writeHashState(activeSong.id, next);
+}
+
+function seekBy(deltaSec) {
+  seekTo((ws.getCurrentTime() || 0) + deltaSec, false);
+}
+
+playPauseBtn.addEventListener("click", () => ws.isPlaying() ? ws.pause() : ws.play());
+stopBtn.addEventListener("click", () => { ws.stop(); seekTo(0, false); });
+
+seekBack5Btn.addEventListener("click", () => seekBy(-5));
+seekFwd5Btn.addEventListener("click", () => seekBy(+5));
+
+shareBtn.addEventListener("click", async () => {
+  const url = makeShareUrl(activeSong.id, ws.getCurrentTime() || 0);
+  try {
+    await navigator.clipboard.writeText(url);
+    shareBtn.textContent = "Copied!";
+    setTimeout(() => shareBtn.textContent = "Share", 900);
+  } catch {
+    window.prompt("Copy this link:", url);
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  const tag = (e.target && e.target.tagName || "").toLowerCase();
+  const typing = tag === "input" || tag === "textarea" || e.target.isContentEditable;
+  if (typing) return;
+
+  if (e.code === "Space") {
+    e.preventDefault();
+    ws.isPlaying() ? ws.pause() : ws.play();
+    return;
+  }
+
+  const step = e.shiftKey ? 15 : 5;
+  if (e.code === "ArrowLeft") { e.preventDefault(); seekBy(-step); return; }
+  if (e.code === "ArrowRight") { e.preventDefault(); seekBy(+step); return; }
+});
+
+ws.on("play", () => playPauseBtn.textContent = "Pause");
+ws.on("pause", () => playPauseBtn.textContent = "Play");
+ws.on("finish", () => playPauseBtn.textContent = "Play");
+
+ws.on("timeupdate", (t) => {
+  if (isLoadingSong) return;
+  setActivePhraseIndexByTime(t);
+  timeEl.textContent = `${fmtTime(t)} / ${fmtTime(ws.getDuration() || 0)}`;
+  writeHashState(activeSong.id, t);
+});
+
+/*****************************************************************
+ * Tabs
+ *****************************************************************/
+const tabButtons = [...document.querySelectorAll(".chartTab")];
+tabButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    activeMode = btn.dataset.mode;
+    tabButtons.forEach(b => b.classList.toggle("active", b === btn));
+clearAxisLineHighlight();
+updateRadarNow(activeMode, activePhraseIndex);
+renderLegendForMode(activeMode);
+  });
+});
+
+/*****************************************************************
+ * Song list + loading
+ *****************************************************************/
+function renderSongList(activeId) {
+  songListEl.innerHTML = "";
+  SONGS.forEach(s => {
+    const chip = document.createElement("div");
+    chip.className = "songChip" + (s.id === activeId ? " active" : "");
+    chip.textContent = `${s.title} — ${s.artist}`;
+    chip.addEventListener("click", () => loadSongById(s.id, 0, true));
+    songListEl.appendChild(chip);
+  });
+}
+
+function loadSongById(songId, startTime = 0, updateHash = true) {
+  isLoadingSong = true;
+
+  const nextSong = SONGS.find(s => s.id === songId) || SONGS[0];
+
+  ws.pause();
+  ws.stop();
+
+  activeSong = nextSong;
+  activePhraseIndex = 0;
+
+  titleEl.textContent = nextSong.title;
+  artistEl.textContent = `— ${nextSong.artist}`;
+  inviteEl.textContent = nextSong.invite;
+  renderSongList(nextSong.id);
+
+  phraseLabelEl.textContent = "Phrase: —";
+  phraseTimelineEl.innerHTML = "";
+  clearRegions();
+  clearAxisLineHighlight();
+
+  ws.load(nextSong.audioUrl);
+
+  if (updateHash) writeHashState(nextSong.id, startTime);
+}
+
+ws.on("ready", () => {
+  isLoadingSong = false;
+
+  createPhraseRegions();
+  renderPhraseTimeline();
+
+  initRadar();
+
+  const dur = ws.getDuration() || 0;
+  timeEl.textContent = `0:00 / ${fmtTime(dur)}`;
+
+  const p = activeSong.phrases[0];
+  phraseLabelEl.textContent = `Phrase: ${p.label}`;
+  highlightActiveRegion(p.id);
+  updateTimelineActive();
+
+  const st = parseHashState();
+  if (st.song === activeSong.id && st.t > 0 && st.t < dur) {
+    seekTo(st.t, false);
+  }
+});
+
+window.addEventListener("hashchange", () => {
+  const st = parseHashState();
+  if (!activeSong || st.song !== activeSong.id) {
+    loadSongById(st.song, st.t, false);
+  } else {
+    seekTo(st.t, false);
+  }
+});
+
+/*****************************************************************
+ * Boot
+ *****************************************************************/
+(function boot(){
+  const st = parseHashState();
+  renderSongList(st.song);
+  loadSongById(st.song, st.t, false);
+})();
+</script>
+</body>
+</html>
