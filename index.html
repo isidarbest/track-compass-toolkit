@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>The Track Compass toolikt</title>
+  <title>The Track Compass toolkit by DJ KRON</title>
 
   <!-- Plotly -->
   <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
@@ -62,6 +62,12 @@
       gap: 10px;
       margin-top: 8px;
     }
+
+    .btn.playing{
+  background: rgba(0,240,255,0.16);
+  border-color: rgba(0,240,255,0.45);
+  box-shadow: 0 0 18px rgba(0,240,255,0.22);
+}
     .songChip {
       padding: 9px 12px;
       border-radius: 999px;
@@ -332,7 +338,7 @@
 <body>
   <div class="container">
     <header>
-      <h1>The Track Compass toolikt</h1>
+      <h1>The Track Compass toolkit by DJ KRON</h1>
       <p class="subtitle">
         The Track Compass Toolkit is an interactive song map for DJs and dancers. It lets you see a track broken into phrases, and see what each section invites on the dancefloor. 
 
@@ -353,9 +359,9 @@
       <div class="stack">
         <div class="panel">
           <div class="chartTabs" id="radarTabs">
-            <button class="chartTab active" data-mode="movement" type="button">Movement</button>
-            <button class="chartTab" data-mode="texture" type="button">Texture / Emotion</button>
-            <button class="chartTab" data-mode="dj" type="button">DJ Utility</button>
+            <button class="chartTab active" data-mode="movement" type="button">Dance invitation</button>
+            <button class="chartTab" data-mode="texture" type="button">Track metrics</button>
+            <button class="chartTab" data-mode="dj" type="button">DJ Signals</button>
           </div>
 
           <div class="radarRow">
@@ -400,78 +406,200 @@
 /*****************************************************************
  * DEMO DATA — replace with yours
  *****************************************************************/
-const SONGS = [
-  {
-    id: "track1",
-    title: "ALMA — Perfect",
-    artist: "Local file demo",
-    invite: "Invites: a controlled build, then open-body release.",
-    audioUrl: "audio/ALMA - Perfect.mp3",  // ✅ FIXED PATH (set yours)
-    phrases: [
-      {
-        id:"intro", name:"Intro", start:0, end:20, color:"rgba(0,240,255,0.20)",
-        label:"Intro — inhale, set the tone.",
-        radar:{
-          movement:{ labels:["Groove","Bounce","Flow","Tension"], values:[3,2,6,3]},
-          texture:{ labels:["Warmth","Darkness","Euphoria","Immersion"], values:[3,6,2,7]},
-          dj:{ labels:["Mix-in","Mix-out","Peak-time","Unique"], values:[8,6,2,6]}
-        }
-      },
-      {
-        id:"build", name:"Build", start:20, end:55, color:"rgba(255,43,214,0.18)",
-        label:"Build — tension climbs, steps sharpen.",
-        radar:{
-          movement:{ labels:["Groove","Bounce","Flow","Tension"], values:[6,4,7,8]},
-          texture:{ labels:["Warmth","Darkness","Euphoria","Immersion"], values:[4,7,3,8]},
-          dj:{ labels:["Mix-in","Mix-out","Peak-time","Unique"], values:[6,7,5,7]}
-        }
-      },
-      {
-        id:"drop", name:"Drop", start:55, end:95, color:"rgba(124,255,107,0.16)",
-        label:"Drop — release, bigger motion.",
-        radar:{
-          movement:{ labels:["Groove","Bounce","Flow","Tension"], values:[9,7,8,6]},
-          texture:{ labels:["Warmth","Darkness","Euphoria","Immersion"], values:[5,6,7,7]},
-          dj:{ labels:["Mix-in","Mix-out","Peak-time","Unique"], values:[5,6,9,7]}
-        }
-      }
-    ]
-  }
-];
-
 /*****************************************************************
- * LEGEND CONFIG — easy to change per tab
+ * PHRASE TYPES — defaults (same for every song)
+ * Edit these to change default color + default description globally.
  *****************************************************************/
-const LEGEND_CONFIG = {
-  movement: {
-    title: "Movement legend",
-    axes: {
-      "Groove": "Invites steady hips / pulse and lock-in.",
-      "Bounce": "Invites springy steps and playful rebound.",
-      "Flow": "Invites smooth continuous motion and glide.",
-      "Tension": "Invites holding back, edging, anticipation."
-    }
+const PHRASE_TYPES = {
+  Intro: {
+    color: "rgba(0, 240, 255, 0.18)",
+    label: "Intro — Sets the tone and groove; invites entry."
   },
-  texture: {
-    title: "Texture / Emotion legend",
-    axes: {
-      "Warmth": "Invites soft open body language.",
-      "Darkness": "Invites grounded, shadowy movement.",
-      "Euphoria": "Invites uplift, open chest, release.",
-      "Immersion": "Invites inward focus; losing yourself in the loop."
-    }
+  Build: {
+    color: "rgba(255, 120, 0, 0.16)",
+    label: "Build — Tension increases; prepares the next peak or drop."
   },
-  dj: {
-    title: "DJ Utility legend",
-    axes: {
-      "Mix-in": "Easy to enter without breaking the floor.",
-      "Mix-out": "Easy to exit cleanly.",
-      "Peak-time": "Works when the room needs a push.",
-      "Unique": "Stands out, memorable signature."
-    }
+  Drop: {
+    color: "rgba(124, 255, 107, 0.16)",
+    label: "Drop — Release and impact; strongest rhythmic drive."
+  },
+  Bridge: {
+    color: "rgba(170, 120, 255, 0.16)",
+    label: "Bridge — Change of scenery; new idea or variation before returning."
+  },
+  "Pre-Chorus": {
+    color: "rgba(255, 190, 90, 0.16)",
+    label: "Pre-Chorus — Builds anticipation; energy rises toward the chorus."
+  },
+  Chorus: {
+    color: "rgba(255, 43, 214, 0.18)",
+    label: "Chorus — Main hook and payoff; biggest, most memorable moment."
+  },
+  Verse: {
+    color: "rgba(140, 160, 255, 0.16)",
+    label: "Verse — Develops the story/groove; steady progression."
+  },
+  Break: {
+    color: "rgba(130, 130, 130, 0.14)",
+    label: "Break — Drops intensity; creates space and contrast."
+  },
+  Outro: {
+    color: "rgba(0, 200, 180, 0.14)",
+    label: "Outro — Winds down; gives closure or a clean exit."
   }
 };
 
+/*****************************************************************
+ * Helper: Build phrase from a simple object
+ * You fill: type, start, end, radar (+ optional id, tag, labelOverride, colorOverride)
+ *****************************************************************/
+function makePhrase(p) {
+  const def = PHRASE_TYPES[p.type] || {};
+
+  return {
+    id: p.id || p.type.toLowerCase().replace(/\s+/g, "-"),
+    name: p.tag || p.type,                       // shown on the timeline
+    start: p.start,
+    end: p.end,
+    color: p.colorOverride || def.color || "rgba(255,255,255,0.10)",
+    label: p.labelOverride || def.label || `${p.type} —`,
+    radar: p.radar
+  };
+}
+
+/*****************************************************************
+ * SONGS — simplified input
+ * Only edit audioUrl + phrase times + radar values (+ optional tag)
+ *****************************************************************/
+const SONGS = [
+  {
+    id: "track1",
+    title: "Perfect",
+    artist: "ALMA",
+    invite: "Party lifter: High energy, high movement; instant crowd ignition with energy buildup",
+    audioUrl: "audio/ALMA - Perfect.mp3",
+    phrases: [
+      makePhrase({
+        type: "Intro",
+        start: 0,
+        end: 24,
+        radar: {
+          movement: { labels: ["Movement","Vibe","Emotion","Immersion"], values: [3,5,4,3] },
+          texture:  { labels: ["Energy","Complexity","Likeability","Popularity"], values: [3,4,8,7] },
+          dj:       { labels: ["Density","Attention Grab","Dynamics","Mixability"], values: [3,6,2,9] }
+        }
+      }),
+
+      makePhrase({
+        type: "Build",
+        start: 24,
+        end: 45,
+        radar: {
+          movement: { labels: ["Movement","Vibe","Emotion","Immersion"], values: [5,9,2,4] },
+          texture:  { labels: ["Energy","Complexity","Likeability","Popularity"], values: [6,5,9,7] },
+          dj:       { labels: ["Density","Attention Grab","Dynamics","Mixability"], values: [8,8,8,4] }
+        }
+      }),
+
+      makePhrase({
+        type: "Drop",
+        start: 45,
+        end: 67,
+       radar: {
+          movement: { labels: ["Movement","Vibe","Emotion","Immersion"], values: [3,5,3,5] },
+          texture:  { labels: ["Energy","Complexity","Likeability","Popularity"], values: [2,4,8,7] },
+          dj:       { labels: ["Density","Attention Grab","Dynamics","Mixability"], values: [2,4,2,9] }       
+           }
+      }),
+
+      makePhrase({
+        type: "Bridge",
+        start: 67,
+        end: 77,
+        radar: {
+          movement: { labels: ["Movement","Vibe","Emotion","Immersion"], values: [4,5,3,4] },
+          texture:  { labels: ["Energy","Complexity","Likeability","Popularity"], values: [3,4,8,7] },
+          dj:       { labels: ["Density","Attention Grab","Dynamics","Mixability"], values: [3,4,2,8] }
+        }
+      }),
+
+      makePhrase({
+        type: "Pre-Chorus",
+        tag: "Pre-chorus",
+        id: "pre-chorus",    
+        start: 77,
+        end: 90,
+        radar: {
+          movement: { labels: ["Movement","Vibe","Emotion","Immersion"], values: [7,6,1,2] },
+          texture:  { labels: ["Energy","Complexity","Likeability","Popularity"], values: [6,3,8,6] },
+          dj:       { labels: ["Density","Attention Grab","Dynamics","Mixability"], values: [4,6,4,7] }
+        }
+      }),
+
+      makePhrase({
+        type: "Chorus",
+        start: 90,
+        end: 109,
+        radar: {
+          movement: { labels: ["Movement","Vibe","Emotion","Immersion"], values: [8,6,1,2] },
+          texture:  { labels: ["Energy","Complexity","Likeability","Popularity"], values: [7,3,8,6] },
+          dj:       { labels: ["Density","Attention Grab","Dynamics","Mixability"], values: [6,8,4,8] }
+        }
+      }),
+            makePhrase({
+        type: "Verse",
+        start: 109,
+        end: 131,
+        radar: {
+          movement: { labels: ["Movement","Vibe","Emotion","Immersion"], values: [8,5,1,2] },
+          texture:  { labels: ["Energy","Complexity","Likeability","Popularity"], values: [7,3,8,6] },
+          dj:       { labels: ["Density","Attention Grab","Dynamics","Mixability"], values: [5,6,3,7] }
+        }
+      }),
+                        makePhrase({
+        type: "Drop",
+        start: 131,
+        end: 142,
+        radar: {
+          movement: { labels: ["Movement","Vibe","Emotion","Immersion"], values: [3,5,3,5] },
+          texture:  { labels: ["Energy","Complexity","Likeability","Popularity"], values: [2,4,8,7] },
+          dj:       { labels: ["Density","Attention Grab","Dynamics","Mixability"], values: [2,4,2,9] }
+        }
+      }),
+                            makePhrase({
+        type: "Pre-Chorus",
+        start: 142,
+        end: 152,
+        radar: {
+          movement: { labels: ["Movement","Vibe","Emotion","Immersion"], values: [7,6,1,2] },
+          texture:  { labels: ["Energy","Complexity","Likeability","Popularity"], values: [6,3,8,6] },
+          dj:       { labels: ["Density","Attention Grab","Dynamics","Mixability"], values: [4,6,4,7] }
+        }
+      }),
+          makePhrase({
+        type: "Chorus",
+        start: 152,
+        end: 173,
+        radar: {
+          movement: { labels: ["Movement","Vibe","Emotion","Immersion"], values: [8,6,1,2] },
+          texture:  { labels: ["Energy","Complexity","Likeability","Popularity"], values: [7,3,8,6] },
+          dj:       { labels: ["Density","Attention Grab","Dynamics","Mixability"], values: [6,8,4,8] }
+        }
+      }),
+
+                makePhrase({
+        type: "Verse",
+        start: 173,
+        end: 194,
+        radar: {
+          movement: { labels: ["Movement","Vibe","Emotion","Immersion"], values: [8,5,1,2] },
+          texture:  { labels: ["Energy","Complexity","Likeability","Popularity"], values: [7,3,8,6] },
+          dj:       { labels: ["Density","Attention Grab","Dynamics","Mixability"], values: [5,7,3,7] }
+        }
+      })
+    ]
+  }
+];
 /*****************************************************************
  * URL STATE (#song=...&t=...)
  *****************************************************************/
@@ -570,9 +698,9 @@ const radarLayout = {
  * Radar axis order (must match labels)
  *****************************************************************/
 const RADAR_AXES = {
-  movement: ["Groove","Bounce","Flow","Tension"],
-  texture:  ["Warmth","Darkness","Euphoria","Immersion"],
-  dj:       ["Mix-in","Mix-out","Peak-time","Unique"]
+  movement: ["Movement","Vibe","Emotion","Immersion"],
+  texture:  ["Energy","Complexity","Likeability","Popularity"],
+  dj:       ["Density","Attention Grab","Dynamics","Mixability"]
 };
 
 function closeLoop(arr){ return [...arr, arr[0]]; }
@@ -612,12 +740,21 @@ function setRadarInstant(mode, phraseIndex) {
   }
 }
 function radarTraceFromValues(mode, values) {
+  const loopVals = closeLoop(values);
+  const loopAxes = closeLoop(RADAR_AXES[mode]);
+
   return {
     type: "scatterpolar",
-    mode: "lines+markers",
+    mode: "lines+markers+text",
     fill: "toself",
-    r: closeLoop(values),
-    theta: closeLoop(RADAR_AXES[mode]),
+    r: loopVals,
+    theta: loopAxes,
+
+    // show the numbers next to points
+    text: loopVals.map(v => String(v)),
+    textposition: "top center",
+    textfont: { size: 11, color: "rgba(255,255,255,0.85)" },
+
     line: { width: 3, color: neon[mode] },
     marker: { size: 7, color: neon[mode] },
     fillcolor: hexToRgba(neon[mode], 0.20),
@@ -677,16 +814,20 @@ function updateRadarNow(mode, phraseIndex) {
   const values = valuesInFixedOrder(mode, p.radar[mode]);
   const trace = radarTraceFromValues(mode, values);
 
-  // Update main radar trace (trace 0) instantly
   Plotly.restyle("chart", {
     r: [trace.r],
     theta: [trace.theta],
+    text: [trace.text],                 // ✅ IMPORTANT
+    textposition: [trace.textposition], // ✅ keep consistent
+    "textfont.size": [11],
+    "textfont.color": ["rgba(255,255,255,0.85)"],
+
     "line.color": [trace.line.color],
     "marker.color": [trace.marker.color],
     fillcolor: [trace.fillcolor]
   }, [0]);
 
-  // Keep highlight trace color in sync (trace 1)
+  // Keep highlight trace in sync
   if (highlightTraceReady) {
     Plotly.restyle("chart", { "line.color": [neon[mode]] }, [1]);
     clearAxisLineHighlight();
@@ -699,7 +840,41 @@ function updateRadarNow(mode, phraseIndex) {
 function renderLegendForMode(mode) {
   if (!activeSong || !activeSong.phrases || !activeSong.phrases.length) return;
 
+  // IMPORTANT: LEGEND_CONFIG should ideally live outside this function,
+  // but keeping it here also works as long as cfg is defined.
+  const LEGEND_CONFIG = {
+    movement: {
+      title: "Dance invitation legend",
+      axes: {
+        "Movement": "How much the phrase invites physical movement and travel.",
+        "Vibe": "The atmosphere it creates in the room.",
+        "Emotion": "How strongly it pulls feelings (tension, warmth, release).",
+        "Immersion": "How much it draws you inward and absorbs attention."
+      }
+    },
+    texture: {
+      title: "Track metrics legend",
+      axes: {
+        "Energy": "How much intensity and activation it brings.",
+        "Complexity": "How layered or busy it feels.",
+        "Likeability": "How easily it lands with most people.",
+        "Popularity": "How familiar it is to the crowd."
+      }
+    },
+    dj: {
+      title: "DJ Signals legend",
+      axes: {
+        "Density": "How layered the phrase is (more layers = harder to mix cleanly).",
+        "Attention Grab": "How much it steals focus (hook/vocal/lead).",
+        "Dynamics": "How much it changes internally vs a stable loop.",
+        "Mixability": "How safely it can be layered without clashing or mud."
+      }
+    }
+  };
+
   const cfg = LEGEND_CONFIG[mode] || { title: "Legend", axes: {} };
+
+  // Set title + clear previous items
   legendTitleEl.textContent = cfg.title || "Legend";
   legendItemsEl.innerHTML = "";
 
@@ -709,10 +884,11 @@ function renderLegendForMode(mode) {
   RADAR_AXES[mode].forEach((lab, axisIndex) => {
     const item = document.createElement("div");
     item.className = "legendItem";
-item.innerHTML = `
-  <div class="legendLabel">${lab}</div>
-  <div class="legendDesc">${(cfg.axes && cfg.axes[lab]) ? cfg.axes[lab] : "—"}</div>
-`;
+
+    item.innerHTML = `
+      <div class="legendLabel">${lab}</div>
+      <div class="legendDesc">${cfg.axes[lab] || "—"}</div>
+    `;
 
     item.addEventListener("mouseenter", () => {
       ensureHighlightTrace();
@@ -731,7 +907,6 @@ item.innerHTML = `
     legendItemsEl.appendChild(item);
   });
 }
-
 /*****************************************************************
  * WaveSurfer + Regions
  *****************************************************************/
@@ -905,9 +1080,20 @@ document.addEventListener("keydown", (e) => {
   if (e.code === "ArrowRight") { e.preventDefault(); seekBy(+step); return; }
 });
 
-ws.on("play", () => playPauseBtn.textContent = "Pause");
-ws.on("pause", () => playPauseBtn.textContent = "Play");
-ws.on("finish", () => playPauseBtn.textContent = "Play");
+ws.on("play", () => {
+  playPauseBtn.textContent = "Pause";
+  playPauseBtn.classList.add("playing");
+});
+
+ws.on("pause", () => {
+  playPauseBtn.textContent = "Play";
+  playPauseBtn.classList.remove("playing");
+});
+
+ws.on("finish", () => {
+  playPauseBtn.textContent = "Play";
+  playPauseBtn.classList.remove("playing");
+});
 
 ws.on("timeupdate", (t) => {
   if (isLoadingSong) return;
@@ -923,10 +1109,11 @@ const tabButtons = [...document.querySelectorAll(".chartTab")];
 tabButtons.forEach(btn => {
   btn.addEventListener("click", () => {
     activeMode = btn.dataset.mode;
+
     tabButtons.forEach(b => b.classList.toggle("active", b === btn));
-clearAxisLineHighlight();
-updateRadarNow(activeMode, activePhraseIndex);
-renderLegendForMode(activeMode);
+
+    updateRadarNow(activeMode, activePhraseIndex);
+    renderLegendForMode(activeMode);
   });
 });
 
